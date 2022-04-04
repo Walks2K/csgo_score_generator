@@ -7,7 +7,6 @@ CS matches are won either by first to 16 rounds (unless 15-15, in which case the
 """
 
 
-import copy
 import random
 import requests
 from bs4 import BeautifulSoup
@@ -24,6 +23,7 @@ class Player:
         self.kills = kills
         self.deaths = deaths
         self.assists = assists
+        self.alive = True
 
     def __str__(self):
         return f"{self.name} ({self.team}): {self.kills} kills, {self.deaths} deaths, {self.assists} assists"
@@ -42,6 +42,44 @@ class Team:
     def __str__(self):
         return f"{self.name}: {self.rounds_won}, {[player.name for player in self.players]}"
 
+    def alive_players(self):
+        """
+        Returns a list of alive players
+        """
+        return [player for player in self.players if player.alive]
+
+    def alive_players_count(self):
+        """
+        Returns the number of alive players
+        """
+        return len(self.alive_players())
+
+    def reset_round(self):
+        """
+        Resets team after a round has ended
+        """
+        for player in self.players:
+            player.alive = True
+
+    def print_team(self, sort=None):
+        """
+        Prints the team in a nice format
+        """
+        if sort == "kills":
+            self.players.sort(key=lambda player: player.kills, reverse=True)
+        elif sort == "deaths":
+            self.players.sort(key=lambda player: player.deaths, reverse=True)
+        elif sort == "assists":
+            self.players.sort(key=lambda player: player.assists, reverse=True)
+        elif sort == "alive":
+            self.players.sort(key=lambda player: player.alive, reverse=True)
+        else:
+            self.players.sort(key=lambda player: player.name)
+
+        print(f"{self.name} ({self.rounds_won}):")
+        for player in self.players:
+            print(f"\t{player}")
+
 
 class Game:
     """
@@ -55,15 +93,6 @@ class Game:
         """
         Simulates a CS:GO match
         """
-        # Initialize the game
-        self.teams[0].rounds_won = 0
-        self.teams[1].rounds_won = 0
-        self.teams[0].players[0].kills = 0
-        self.teams[0].players[0].deaths = 0
-        self.teams[0].players[0].assists = 0
-        self.teams[1].players[0].kills = 0
-        self.teams[1].players[0].deaths = 0
-        self.teams[1].players[0].assists = 0
         # Simulate the game
         while self.teams[0].rounds_won < 16 and self.teams[1].rounds_won < 16:
             self.simulate_round()
@@ -79,33 +108,64 @@ class Game:
         print(
             f"{winner.name} won {winner.rounds_won} rounds, {loser.name} won {loser.rounds_won} rounds"
         )
-        print(f"{winner.name}'s team: {[player.name for player in winner.players]}")
-        print(f"{loser.name}'s team: {[player.name for player in loser.players]}")
+        winner.print_team("kills")
+        loser.print_team("kills")
 
     def simulate_round(self):
         """
         Simulates a single round of CS:GO
         """
-        team1 = copy.deepcopy(self.teams[0])
-        team2 = copy.deepcopy(self.teams[1])
+        while (self.teams[0].alive_players_count() > 0) and (self.teams[1].alive_players_count() > 0):
+            # Pick a random player from each team
+            team1_player = random.choice(self.teams[0].alive_players())
+            team2_player = random.choice(self.teams[1].alive_players())
 
-        while len(team1.players) > 1 and len(team2.players) > 1:
-            team1_player = random.choice(team1.players)
-            team2_player = random.choice(team2.players)
+            # Roll a random chance for who will kill who
+            if random.randint(0, 1) == 0:
+                self.event_kill(team1_player, team2_player, None)
+            else:
+                self.event_kill(team2_player, team1_player, None)
 
-            if random.random() < 0.5:  # team1 kills team2 player
-                team1_player.kills += 1
-                team2_player.deaths += 1
-                team2.players.remove(team2_player)
-            else:  # team2 kills team1 player
-                team2_player.kills += 1
-                team1_player.deaths += 1
-                team1.players.remove(team1_player)
+        # End the round
+        self.round_end()
 
-        if len(team1.players) > len(team2.players):
-            self.teams[0].rounds_won += 1
-        elif len(team2.players) > len(team1.players):
-            self.teams[1].rounds_won += 1
+    def event_kill(self, killer, victim, assist):
+        """
+        Handles a kill event
+
+        Args:
+            killer (Player): The player who killed
+            victim (Player): The player who was killed
+            assist (Player): The player who assisted in killing
+        """
+        killer.kills += 1
+        victim.deaths += 1
+
+        # Set victim as dead
+        victim.alive = False
+
+        # Roll a random chance for assist to count
+        if random.randint(0, 1) == 0 and assist is not None:
+            assist.assists += 1
+
+    def round_end(self):
+        """
+        Resets the game after a round has ended and finds the winner
+        """
+        # Find team with more alive players
+        if self.teams[0].alive_players_count() > self.teams[1].alive_players_count():
+            winner = self.teams[0]
+            loser = self.teams[1]
+        else:
+            winner = self.teams[1]
+            loser = self.teams[0]
+
+        # Add a round to the winner
+        winner.rounds_won += 1
+
+        # Reset the game
+        for team in self.teams:
+            team.reset_round()
 
     def __str__(self):
         return f"Team 1: {self.teams[0]}, Team 2: {self.teams[1]}"
@@ -152,7 +212,7 @@ def main():
     Main function
     """
     game = parse_match_page(
-        "https://www.hltv.org/matches/2354538/g2-vs-nip-esl-pro-league-season-15"
+        "https://www.hltv.org/matches/2354979/fnatic-vs-ence-esl-pro-league-season-15"
     )
 
     game.simulate()
