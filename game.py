@@ -76,14 +76,14 @@ class Game:
             if (
                 self.teams[0].alive_players_count() - 2
                 >= self.teams[1].alive_players_count()
-                and random.randint(0, 1) == 1
+                and random.random() > 0.5
             ):
                 self.round_end()
                 return
             elif (
                 self.teams[1].alive_players_count() - 2
                 >= self.teams[0].alive_players_count()
-                and random.randint(0, 1) == 1
+                and random.random() > 0.5
             ):
                 self.round_end()
                 return
@@ -94,7 +94,7 @@ class Game:
             assist = None
 
             # Roll a random chance for who will kill who
-            if random.randint(0, 1) == 0:
+            if random.random() > 0.5:
                 # choose a unique random player from team1 to assist
                 while (assist is team1_player or assist is None) and len(
                     self.teams[0].alive_players()
@@ -128,7 +128,7 @@ class Game:
         victim.alive = False
 
         # Roll a random chance for assist to count
-        if random.randint(0, 1) == 0 and assist is not None:
+        if random.random() > 0.5 and assist is not None:
             assist.assists += 1
 
     def round_end(self):
