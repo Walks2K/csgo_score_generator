@@ -54,7 +54,7 @@ def main():
     Main function
     """
     game = parse_match_page(
-        "https://www.hltv.org/matches/2354979/fnatic-vs-ence-esl-pro-league-season-15"
+        "https://www.hltv.org/matches/2355750/natus-vincere-vs-vitality-pgl-major-antwerp-2022-europe-rmr-a"
     )
 
     game.simulate()
