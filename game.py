@@ -40,7 +40,25 @@ class Game:
         """
         Simulates a single round of CS:GO
         """
-        while (self.teams[0].alive_players_count() > 0) and (self.teams[1].alive_players_count() > 0):
+        while (self.teams[0].alive_players_count() > 0) and (
+            self.teams[1].alive_players_count() > 0
+        ):
+            # If a team has 2+ player advantage, roll chance for round to end in their favour
+            if (
+                self.teams[0].alive_players_count() - 2
+                >= self.teams[1].alive_players_count()
+                and random.randint(0, 1) == 1
+            ):
+                self.round_end()
+                return
+            elif (
+                self.teams[1].alive_players_count() - 2
+                >= self.teams[0].alive_players_count()
+                and random.randint(0, 1) == 1
+            ):
+                self.round_end()
+                return
+
             # Pick a random player from each team
             team1_player = random.choice(self.teams[0].alive_players())
             team2_player = random.choice(self.teams[1].alive_players())
